@@ -578,7 +578,6 @@ jobs:
       - build-arm64
       - build-armv7l
       - pack-archpkg-x86_64
-      - pack-archpkg-i686
       - pack-archpkg-aarch64
       - pack-archpkg-armv7l
     steps:
@@ -588,9 +587,6 @@ jobs:
       - uses: geekyeggo/delete-artifact@v1
         with:
           name: x86_64-unpacked
-      - uses: geekyeggo/delete-artifact@v1
-        with:
-          name: ia32-unpacked
       - uses: geekyeggo/delete-artifact@v1
         with:
           name: arm64-unpacked
@@ -847,7 +843,6 @@ jobs:
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     needs:
       - pack-archpkg-x86_64
-      - pack-archpkg-i686
       - pack-archpkg-aarch64
       - pack-archpkg-armv7l
       - pack-snap-x86_64
@@ -940,36 +935,6 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: armv7l.tar.xz
-          path: release
-
-      - name: get i686.pkg.tar.zst
-        uses: actions/download-artifact@v2
-        with:
-          name: i686.pkg.tar.zst
-          path: release
-
-      - name: get ia32.AppImage
-        uses: actions/download-artifact@v2
-        with:
-          name: ia32.AppImage
-          path: release
-
-      - name: get ia32.tar.xz
-        uses: actions/download-artifact@v2
-        with:
-          name: ia32.tar.xz
-          path: release
-
-      - name: get ia32.deb
-        uses: actions/download-artifact@v2
-        with:
-          name: ia32.deb
-          path: release
-
-      - name: get ia32.rpm
-        uses: actions/download-artifact@v2
-        with:
-          name: ia32.rpm
           path: release
 
       - name: get x86_64.AppImage
