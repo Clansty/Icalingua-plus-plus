@@ -122,53 +122,6 @@ jobs:
           path: icalingua/build/linux-unpacked
           if-no-files-found: error
 
-  build-ia32:
-    runs-on: ubuntu-latest
-    needs: build-dist-bundle
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v2.3.0
-
-      - uses: Icalinguaplusplus/gha-yarn-node-cache@master
-        env:
-          WORKING_DIR: icalingua
-
-      - name: get dist
-        uses: actions/download-artifact@v2
-        with:
-          name: dist
-          path: icalingua/dist
-
-      - name: Install gcc-multilib
-        run: |
-          sudo dpkg --add-architecture i386
-          sudo apt update
-          sudo apt install gcc-multilib g++-multilib -y
-
-      - name: build native modules
-        run: yarn build:electron install-app-deps --arch ia32
-        working-directory: icalingua
-
-      - name: build
-        run: yarn build:electron --ia32 --dir -c.extraMetadata.version=${{ needs.build-dist-bundle.outputs.version }}
-        working-directory: icalingua
-
-      - uses: actions/upload-artifact@v2
-        name: upload app.asar
-        with:
-          name: app-ia32.asar
-          path: icalingua/build/linux-ia32-unpacked/resources/app.asar
-          if-no-files-found: error
-
-      - uses: actions/upload-artifact@v2
-        name: upload unpacked
-        with:
-          name: ia32-unpacked
-          path: icalingua/build/linux-ia32-unpacked
-          if-no-files-found: error
-
   build-arm64:
     runs-on: ubuntu-latest
     needs: build-dist-bundle
@@ -326,54 +279,6 @@ jobs:
         name: upload x86_64
         with:
           name: x86_64.pkg.tar.zst
-          path: ${{ steps.pkgname.outputs.pkgname }}
-          if-no-files-found: error
-
-      - name: 同步 docker 内外目录
-        # $PWD 在 docker 中被映射到 /github/workspace
-        run: |
-          sudo mkdir /github
-          sudo ln -s $PWD /github/workspace
-
-  pack-archpkg-i686:
-    runs-on: ubuntu-latest
-    needs:
-      - build-dist-bundle
-      - arch-artifacts
-      - build-ia32
-    steps:
-
-      - name: get the assets
-        uses: actions/download-artifact@v2
-        with:
-          name: pkgres
-
-      - name: print the PKGBUILD for i686
-        shell: bash
-        run: sed 's/VERSION/${{ needs.build-dist-bundle.outputs.arch-version }}/;s/ARCH/i686/' ${{ needs.build-dist-bundle.outputs.pkg-name }}.PKGBUILD.template > PKGBUILD
-
-      - name: get binary for i686
-        uses: actions/download-artifact@v2
-        with:
-          name: app-ia32.asar
-
-      - run: chmod -R 777 .
-
-      - name: makepkg for i686
-        uses: Icalinguaplusplus/archlinux-package-action@main
-        with:
-          carch: i686
-          flags: '-cfd --noconfirm'
-          namcap: false
-          updpkgsums: true
-
-      - id: pkgname
-        run: echo ::set-output name=pkgname::$(ls *-i686.pkg.*)
-
-      - uses: actions/upload-artifact@v2
-        name: upload i686
-        with:
-          name: i686.pkg.tar.zst
           path: ${{ steps.pkgname.outputs.pkgname }}
           if-no-files-found: error
 
@@ -575,50 +480,6 @@ jobs:
           path: icalingua/build/*.${{ matrix.package }}
           if-no-files-found: error
 
-  pack-otherpkg-ia32:
-    runs-on: ubuntu-latest
-    needs:
-      - build-ia32
-      - build-dist-bundle
-    strategy:
-      matrix:
-        package:
-          - deb
-          - rpm
-          - AppImage
-          - tar.xz
-    defaults:
-      run:
-        working-directory: icalingua
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v2.3.0
-
-      - uses: Icalinguaplusplus/gha-yarn-node-cache@master
-        env:
-          WORKING_DIR: icalingua
-
-      - name: get built files
-        uses: actions/download-artifact@v2
-        with:
-          name: ia32-unpacked
-          path: icalingua/unpacked
-
-      - name: fix premissions
-        run: chmod +x unpacked/icalingua
-
-      - name: pack
-        run: yarn build:electron --pd unpacked --ia32 -l ${{ matrix.package }} -c.extraMetadata.version=${{ needs.build-dist-bundle.outputs.version }}
-
-      - uses: actions/upload-artifact@v2
-        name: upload ${{ matrix.package }}
-        with:
-          name: ia32.${{ matrix.package }}
-          path: icalingua/build/*.${{ matrix.package }}
-          if-no-files-found: error
-
   pack-otherpkg-arm64:
     runs-on: ubuntu-latest
     needs:
@@ -711,11 +572,9 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - pack-otherpkg-arm64
-      - pack-otherpkg-ia32
       - pack-otherpkg-x86_64
       - pack-otherpkg-armv7l
       - build-x86_64
-      - build-ia32
       - build-arm64
       - build-armv7l
       - pack-archpkg-x86_64
@@ -993,7 +852,6 @@ jobs:
       - pack-archpkg-armv7l
       - pack-snap-x86_64
       - pack-otherpkg-x86_64
-      - pack-otherpkg-ia32
       - pack-otherpkg-arm64
       - pack-otherpkg-armv7l
       - build-dist-bundle
@@ -1011,16 +869,6 @@ jobs:
 
       - name: rename app-x86_64.asar
         run: mv app.asar release/app-x86_64.asar
-
-
-      - name: get app-ia32.asar
-        uses: actions/download-artifact@v2
-        with:
-          name: app-ia32.asar
-
-      - name: rename app-ia32.asar
-        run: mv app.asar release/app-ia32.asar
-
 
       - name: get app-arm64.asar
         uses: actions/download-artifact@v2
